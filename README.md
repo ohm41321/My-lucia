@@ -56,7 +56,7 @@
 1.  เปิดโปรแกรม **Command Prompt** (กดปุ่ม Windows แล้วพิมพ์ `cmd` และ Enter)
 2.  คัดลอกคำสั่งข้างล่างนี้ไปวาง แล้วกด Enter
     ```bash
-    ollama pull dolphin-llama3:8b
+    ollama run hf.co/DavidAU/OpenAi-GPT-oss-20b-abliterated-uncensored-NEO-Imatrix-gguf:Q5_1
     ```
 3.  รอจนกว่าการดาวน์โหลดจะเสร็จ (ขนาดประมาณ 4.7 GB อาจใช้เวลาสักครู่ขึ้นอยู่กับความเร็วอินเทอร์เน็ต)
 
