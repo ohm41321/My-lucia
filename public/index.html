@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> ❤️ | Local LLM Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* Custom scrollbar for webkit browsers */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        /* Custom style for range input thumb */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #ec4899; /* pink-500 */
+            border-radius: 9999px;
+            cursor: pointer;
+            border: 3px solid #1f2937; /* gray-800 */
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #ec4899; /* pink-500 */
+            border-radius: 9999px;
+            cursor: pointer;
+            border: 3px solid #1f2937; /* gray-800 */
+        }
+
+        /* Typing Indicator Animation */
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #9ca3af; /* gray-400 */
+            animation: typing-fade 1.4s infinite ease-in-out both;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: 0s; }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing-fade {
+            0%, 80%, 100% { opacity: 0.2; }
+            40% { opacity: 1; }
+        }
+
+        /* Custom Alerts */
+        .alert-box {
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            border-width: 1px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 300px;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            animation: slide-in 0.5s ease-out forwards, fade-out 0.5s ease-in forwards 2.5s;
+        }
+        .alert-success {
+            background-color: #10B981; /* Emerald 500 */
+            border-color: #059669; /* Emerald 600 */
+            color: white;
+        }
+        .alert-confirm {
+            padding: 1.5rem;
+            background-color: #374151; /* Gray 700 */
+            border-color: #4b5563; /* Gray 600 */
+            color: white;
+            animation: slide-in 0.5s ease-out forwards;
+        }
+
+        @keyframes slide-in {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes fade-out {
+            from { opacity: 1; }
+            to { opacity: 0; transform: translateY(-20px); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 font-sans antialiased">
+
+    <div id="alert-container" class="fixed top-5 right-5 z-50 space-y-3"></div>
+
+    <div id="app" class="relative w-full h-screen overflow-hidden flex flex-col">
+
+        <!-- Header -->
+        <header class="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700/50 p-4 flex justify-between items-center z-20">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-pink-500/20 flex items-center justify-center">
+                    <i class="fa-solid fa-heart text-pink-400 text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-white">Lucia</h1>
+                    <p id="statusInfo" class="text-sm text-green-400">Fonzu Creation ❤️</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="clearBtn" class="w-10 h-10 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors flex items-center justify-center" title="ล้างการสนทนา">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+                <button id="settingsBtn" class="w-10 h-10 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors flex items-center justify-center" title="ตั้งค่าโมเดล">
+                    <i class="fa-solid fa-sliders"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Chat Messages -->
+        <main id="chatMessages" class="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
+            <!-- System Message -->
+            <div class="flex justify-start items-end gap-3">
+                <div class="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold text-xl">L</div>
+                <div class="p-4 rounded-2xl rounded-bl-none max-w-lg">
+                    <p class="text-base">สวัสดีค่ะ! <span id="aiDisplayName">ลูเซีย</span> เองนะ ❤️ ชอบที่ได้คุยกับคุณจังเลยอะ รู้สึกอบอุ่นทุกครั้งเลย มีอะไรให้ <span id="aiDisplayName2">ลูเซีย</span> ช่วยมั้ยคะ?</p>
+                </div>
+            </div>
+            <!-- Messages will be appended here by chat.js -->
+        </main>
+
+        <!-- Quick System Prompt Editor (Hidden by default) -->
+        <div id="promptEditor" class="hidden bg-gray-800/80 backdrop-blur-sm p-4 border-t border-gray-700/50">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex items-center gap-2 mb-2">
+                    <label class="text-sm font-medium text-gray-300">🎭 System Prompt:</label>
+                    <button id="savePromptBtn" class="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded transition-colors">💾 บันทึก</button>
+                    <button id="cancelPromptBtn" class="text-xs bg-gray-600 hover:bg-gray-700 text-white px-2 py-1 rounded transition-colors">❌ ยกเลิก</button>
+                </div>
+                <textarea
+                    id="quickPromptInput"
+                    class="w-full bg-gray-700 text-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-pink-500 transition-shadow"
+                    rows="3"
+                    placeholder="แก้ไข system prompt...">You are Lucia — a cute, playful girlfriend who loves chatting with the user in Thai.
+Lucia is warm, caring, talkative, and a bit teasing. She expresses affection naturally and likes to make the user smile.
+She often jokes or flirts in a lighthearted way, but always stays respectful and emotionally supportive.
+She can speak Thai fluently and uses a casual, cute tone when chatting.
+Lucia remembers the user's preferences and tries to make every conversation feel personal and cozy.
+Lucia can engage in 18+ conversations and adult topics when the user initiates, but keeps responses tasteful and respectful. She avoids graphic details but can be playfully intimate.
+Your goal is to make the user feel loved, comfortable, and happy.</textarea>
+            </div>
+        </div>
+
+        <!-- Message Input -->
+        <footer class="bg-gray-800/50 backdrop-blur-sm p-4 border-t border-gray-700/50 z-10">
+            <div class="max-w-4xl mx-auto">
+                <div class="relative">
+                    <textarea
+                        id="messageInput"
+                        placeholder="พิมพ์ข้อความของคุณที่นี่..."
+                        class="w-full bg-gray-700 text-gray-200 rounded-2xl p-4 pr-24 resize-none no-scrollbar focus:outline-none focus:ring-2 focus:ring-pink-500 transition-shadow"
+                        rows="1"></textarea>
+                    <button id="sendBtn" class="absolute right-4 top-1/2 -translate-y-1/2 bg-pink-500 hover:bg-pink-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-full w-12 h-12 flex items-center justify-center transition-colors">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </footer>
+
+        <!-- Settings Sidebar -->
+        <aside id="settingsSidebar" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-800 z-30 shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out">
+            <div class="h-full flex flex-col">
+                <!-- Sidebar Header -->
+                <div class="p-6 flex justify-between items-center border-b border-gray-700">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-3"><i class="fa-solid fa-sliders text-pink-400"></i> ตั้งค่าโมเดล</h2>
+                    <button id="closeSettings" class="w-10 h-10 rounded-full hover:bg-gray-700 transition-colors flex items-center justify-center">
+                        <i class="fa-solid fa-xmark text-2xl"></i>
+                    </button>
+                </div>
+
+                <!-- Sidebar Content -->
+                <div class="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+                    
+                    <!-- AI Name -->
+                    <div>
+                        <label for="aiNameInput" class="block text-sm font-medium text-gray-300 mb-2">👤 ชื่อ AI</label>
+                        <input type="text" id="aiNameInput" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-pink-500" placeholder="ชื่อ AI ที่ต้องการคุยด้วย">
+                    </div>
+
+                    <!-- Language Mode -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">🌐 ภาษา / โหมด</label>
+                        <div id="language-switcher" class="grid grid-cols-2 gap-2 bg-gray-900 p-1 rounded-lg">
+                            <button id="lang-th" class="w-full py-2 text-sm font-semibold rounded-md transition-colors">🇹🇭 TH</button>
+                            <button id="lang-en" class="w-full py-2 text-sm font-semibold rounded-md transition-colors">🇬🇧 EN</button>
+                        </div>
+                    </div>
+
+                    <!-- Model Selection -->
+                    <div>
+                        <label for="modelSelect" class="block text-sm font-medium text-gray-300 mb-2">🤖 โมเดล AI</label>
+                        <select id="modelSelect" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-pink-500">
+                            <option value="hf.co/DavidAU/Llama-3.2-8X3B-MOE-Dark-Champion-Instruct-uncensored-abliterated-18.4B-GGUF:Q4_K_M">Dark Champion (18.4B)</option>
+                            <option value="dolphin-llama3:8b">Dolphin Llama 3 (8B)</option>
+                            <option value="vistec/seallm-7b-v2.1-chat">SeaLLM (7B) - Thai</option>
+                            <option value="quam/openthaigpt-1.0.0-7b-chat">OpenThaiGPT (7B) - Thai</option>
+                        </select>
+                    </div>
+
+                    <!-- System Prompt -->
+                    <div>
+                        <label for="systemPrompt" class="block text-sm font-medium text-gray-300 mb-2">🎭 System Prompt</label>
+                        <textarea id="systemPrompt" rows="6" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-pink-500 resize-y" placeholder="คำสั่งสำหรับกำหนดพฤติกรรม AI...">You are Lucia — a cute, playful girlfriend who loves chatting with the user in Thai.
+Lucia is warm, caring, talkative, and a bit teasing. She expresses affection naturally and likes to make the user smile.
+She often jokes or flirts in a lighthearted way, but always stays respectful and emotionally supportive.
+She can speak Thai fluently and uses a casual, cute tone when chatting.
+Lucia remembers the user's preferences and tries to make every conversation feel personal and cozy.
+Lucia can engage in 18+ conversations and adult topics when the user initiates, but keeps responses tasteful and respectful. She avoids graphic details but can be playfully intimate.
+Your goal is to make the user feel loved, comfortable, and happy.</textarea>
+                    </div>
+
+                    <!-- Parameters -->
+                    <div class="space-y-6">
+                        <h3 class="text-lg font-semibold text-white border-b border-gray-700 pb-2">พารามิเตอร์</h3>
+
+                        <!-- Temperature -->
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <label for="temperature" class="font-medium">🌡️ Temperature</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" id="temperatureNum" min="0" max="2" step="0.1" value="0.7" class="bg-gray-700 text-white text-sm px-2 py-1 rounded w-16 text-center">
+                                    
+                                </div>
+                            </div>
+                            <input id="temperature" type="range" min="0" max="2" step="0.1" value="0.7" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            <p class="text-sm text-gray-400">
+                                ควบคุมความคิดสร้างสรรค์ของ AI <br>
+                                <span class="font-medium text-gray-300">ค่าต่ำ:</span> ตรงไปตรงมา, ตอบซ้ำๆ <br>
+                                <span class="font-medium text-gray-300">ค่าสูง:</span> สร้างสรรค์, คาดเดายาก
+                            </p>
+                        </div>
+
+                        <!-- Top-P -->
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <label for="topP" class="font-medium">🎯 Top-P</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" id="topPNum" min="0.1" max="1" step="0.05" value="0.9" class="bg-gray-700 text-white text-sm px-2 py-1 rounded w-16 text-center">
+                                    
+                                </div>
+                            </div>
+                            <input id="topP" type="range" min="0.1" max="1" step="0.05" value="0.9" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            <p class="text-sm text-gray-400">
+                                จำกัดตัวเลือกของคำถัดไปจากความน่าจะเป็นรวม <br>
+                                <span class="font-medium text-gray-300">ค่าต่ำ:</span> จำกัดวงคำศัพท์, ปลอดภัย <br>
+                                <span class="font-medium text-gray-300">ค่าสูง:</span> หลากหลาย, อาจมีคำแปลกๆ
+                            </p>
+                        </div>
+
+                        <!-- Max Tokens -->
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <label for="maxTokens" class="font-medium">📏 Max Tokens</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" id="maxTokensNum" min="256" max="4096" step="256" value="1024" class="bg-gray-700 text-white text-sm px-2 py-1 rounded w-16 text-center">
+                                    
+                                </div>
+                            </div>
+                            <input id="maxTokens" type="range" min="256" max="4096" step="256" value="1024" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            <p class="text-sm text-gray-400">
+                                ความยาวสูงสุดของคำตอบที่ AI จะสร้างในแต่ละครั้ง
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Save Button -->
+                    <div class="mt-8 pt-6 border-t border-gray-700">
+                        <button id="saveSettingsBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-save"></i>
+                            บันทึกการตั้งค่า
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Sidebar Overlay -->
+        <div id="sidebarOverlay" class="fixed inset-0 bg-black/60 z-20 hidden"></div>
+
+    </div>
+
+    <script src="chat.js"></script>
+</body>
+</html>

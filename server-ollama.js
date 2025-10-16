@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { exec } = require('child_process');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -80,68 +82,70 @@ async function callOllamaAPI(messages, options = {}) {
     }
 }
 
-// Chat endpoint
+// Chat endpoint for streaming
 app.post('/api/chat', async (req, res) => {
-    // Disable cache for API responses
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    const { message, settings, history } = req.body;
+
+    if (!message) {
+        return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const messagesForOllama = [
+        { role: 'system', content: settings?.systemPrompt || 'You are a helpful assistant.' },
+        ...(history || []),
+        { role: 'user', content: message }
+    ];
 
     try {
-        const { message, settings } = req.body;
+        const ollamaPayload = {
+            model: settings.model,
+            messages: messagesForOllama,
+            stream: true, // Enable streaming
+            options: {
+                temperature: settings.temperature,
+                top_p: settings.topP,
+                num_predict: settings.maxTokens,
+            },
+        };
 
-        // Use provided settings or defaults
-        const currentModel = settings?.model || MODEL_NAME;
-        const systemPrompt = settings?.systemPrompt || `You are Lucia — a cute, playful girlfriend who loves chatting with the user in Thai.
-Lucia is warm, caring, talkative, and a bit teasing. She expresses affection naturally and likes to make the user smile.
-She often jokes or flirts in a lighthearted way, but always stays respectful and emotionally supportive.
-She can speak Thai fluently and uses a casual, cute tone when chatting.
-Lucia remembers the user's preferences and tries to make every conversation feel personal and cozy.
-Lucia can engage in 18+ conversations and adult topics when the user initiates, but keeps responses tasteful and respectful. She avoids graphic details but can be playfully intimate.
-Your goal is to make the user feel loved, comfortable, and happy.`;
-        const temperature = settings?.temperature || 0.7;
-        const topP = settings?.topP || 0.9;
-        const maxTokens = settings?.maxTokens || 1024;
-        const contextLength = settings?.contextLength || 8192;
-
-        if (!message) {
-            return res.status(400).json({ error: 'Message is required' });
-        }
-
-        // Add user message to history
-        conversationHistory.push({ role: 'user', content: message });
-
-        // Prepare messages for Ollama (convert to Ollama format)
-        const messagesForOllama = [
-            { role: 'system', content: systemPrompt },
-            ...conversationHistory.map(msg => ({
-                role: msg.role === 'model' ? 'assistant' : msg.role,
-                content: msg.content || msg.parts?.[0]?.text || ''
-            }))
-        ];
-
-        // Get response from Ollama with custom settings
-        const aiResponse = await callOllamaAPI(messagesForOllama, {
-            model: currentModel,
-            temperature: temperature,
-            top_p: topP,
-            num_predict: maxTokens,
-            num_ctx: contextLength
+        const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(ollamaPayload),
         });
 
-        // Add AI response to history
-        conversationHistory.push({ role: 'model', content: aiResponse });
-
-        // Keep only last 20 messages to prevent token limit issues
-        if (conversationHistory.length > 20) {
-            conversationHistory = conversationHistory.slice(-20);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Ollama API error: ${response.status} ${errorText}`);
         }
 
-        res.json({ response: aiResponse });
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        const reader = response.body.getReader();
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) {
+                    break;
+                }
+                // Forward the chunk directly to the client
+                res.write(value);
+            }
+        } catch (streamError) {
+            console.error('Error while reading from Ollama stream:', streamError);
+        } finally {
+            res.end();
+        }
 
     } catch (error) {
-        console.error('Chat error:', error);
-        res.status(500).json({ error: 'Failed to get response from AI model' });
+        console.error('Chat streaming error:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to get streaming response from AI model' });
+        }
     }
 });
 
@@ -164,6 +168,45 @@ app.get('/api/health', (req, res) => {
     res.setHeader('Expires', '0');
 
     res.json({ status: 'OK', timestamp: new Date().toISOString(), model: MODEL_NAME });
+});
+
+// Endpoint to get available Ollama models
+app.get('/api/models', (req, res) => {
+    const ollamaCommands = [
+        // Default Windows installation path
+        process.env.LOCALAPPDATA ? `"${path.join(process.env.LOCALAPPDATA, 'Programs', 'Ollama', 'ollama.exe')}"` : null,
+        // Fallback for systems where it's in the PATH
+        'ollama'
+    ].filter(Boolean);
+
+    let commandToRun = ollamaCommands[1]; // Default to 'ollama'
+
+    if (ollamaCommands[0] && fs.existsSync(ollamaCommands[0].replace(/"/g, ''))) {
+        commandToRun = ollamaCommands[0];
+    }
+
+    exec(`${commandToRun} list`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`exec error: ${error}`);
+            return res.status(500).json({ error: `Failed to execute 'ollama list'. Make sure Ollama is installed and the service is running. Error: ${error.message}` });
+        }
+        if (stderr && !stdout) { // Sometimes ollama writes connection errors to stderr
+            console.error(`stderr: ${stderr}`);
+            return res.status(500).json({ error: `Ollama service might not be running. Stderr: ${stderr}` });
+        }
+
+        const lines = stdout.trim().split('\n');
+        if (lines.length <= 1) {
+            return res.json([]);
+        }
+
+        const modelNames = lines.slice(1).map(line => {
+            const parts = line.split(/\s+/);
+            return parts[0];
+        }).filter(name => name);
+
+        res.json(modelNames);
+    });
 });
 
 // Serve chat interface
