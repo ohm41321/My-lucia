@@ -86,6 +86,54 @@
             from { opacity: 1; }
             to { opacity: 0; transform: translateY(-20px); }
         }
+
+        /* Enhanced Translation Zone Styles */
+        .translation-zone-gradient {
+            background: linear-gradient(135deg, rgba(55, 65, 81, 0.4) 0%, rgba(75, 85, 99, 0.4) 100%);
+        }
+
+        .translation-input-focus:focus {
+            box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.5);
+        }
+
+        .translation-button-hover:hover {
+            transform: translateY(-1px);
+        }
+
+        .language-option-active {
+            background: linear-gradient(135deg, rgba(219, 39, 119, 0.8) 0%, rgba(168, 85, 247, 0.8) 100%);
+        }
+
+        .scrollable-translation {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+        }
+
+        .scrollable-translation::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .scrollable-translation::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .scrollable-translation::-webkit-scrollbar-thumb {
+            background-color: rgba(156, 163, 175, 0.3);
+            border-radius: 2px;
+        }
+
+        .pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            from {
+                box-shadow: 0 0 5px rgba(168, 85, 247, 0.3);
+            }
+            to {
+                box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 font-sans antialiased">
@@ -102,7 +150,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-white">Lucia</h1>
-                    <p id="statusInfo" class="text-sm text-green-400">Fonzu Creation ❤️</p>
+                    <p id="statusInfo" class="text-sm text-green-400">My Lucia APP V1.4 </p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
@@ -146,6 +194,141 @@ She can speak Thai fluently and uses a casual, cute tone when chatting.
 Lucia remembers the user's preferences and tries to make every conversation feel personal and cozy.
 Lucia can engage in 18+ conversations and adult topics when the user initiates, but keeps responses tasteful and respectful. She avoids graphic details but can be playfully intimate.
 Your goal is to make the user feel loved, comfortable, and happy.</textarea>
+            </div>
+        </div>
+
+        <!-- Enhanced Translation Zone -->
+        <div id="translationZone" class="bg-gradient-to-r from-gray-800/40 to-gray-900/40 backdrop-blur-sm p-4 border-t border-gray-700/50">
+            <div class="max-w-4xl mx-auto">
+                <!-- Translation Zone Header -->
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-language text-purple-400 text-lg"></i>
+                            <span class="text-sm font-semibold text-gray-200">Translate</span>
+                        </div>
+                        <div class="flex items-center gap-1 text-xs">
+                            <span id="detectedLang" class="px-2 py-1 bg-gray-700/50 rounded-full text-gray-300 hidden">
+                                <i class="fa-solid fa-circle text-green-400 text-xs mr-1"></i>
+                                กำลังตรวจจับ...
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="autoTranslateToggle" class="text-xs bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-full transition-colors flex items-center gap-1">
+                            <i class="fa-solid fa-magic text-xs"></i>
+                            แปลอัตโนมัติ
+                        </button>
+                        <button id="toggleTranslationZone" class="text-xs bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-full transition-colors">
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Translation Interface -->
+                <div id="translationInterface" class="hidden space-y-3">
+                    <!-- Language Selection -->
+                    <div class="flex items-center justify-center gap-2 p-2 bg-gray-800/30 rounded-lg">
+                        <button id="langDetectBtn" class="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center gap-1">
+                            <i class="fa-solid fa-search text-xs"></i>
+                            ตรวจสอบภาษา
+                        </button>
+                        <div class="flex items-center gap-1">
+                            <select id="sourceLang" class="text-xs bg-gray-700 text-gray-200 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-500">
+                                <option value="auto">🔍 อัตโนมัติ</option>
+                                <option value="th">🇹🇭 ไทย</option>
+                                <option value="en">🇬🇧 อังกฤษ</option>
+                                <option value="zh">🇨🇳 จีน</option>
+                                <option value="ja">🇯🇵 ญี่ปุ่น</option>
+                                <option value="ko">🇰🇷 เกาหลี</option>
+                            </select>
+                            <i class="fa-solid fa-arrow-right text-gray-400 text-xs"></i>
+                            <select id="targetLang" class="text-xs bg-gray-700 text-gray-200 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-purple-500">
+                                <option value="th">🇹🇭 ไทย</option>
+                                <option value="en">🇬🇧 อังกฤษ</option>
+                                <option value="zh">🇨🇳 จีน</option>
+                                <option value="ja">🇯🇵 ญี่ปุ่น</option>
+                                <option value="ko">🇰🇷 เกาหลี</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Translation Input/Output Area -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <!-- Source Text -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label class="text-xs font-medium text-gray-300 flex items-center gap-1">
+                                    <i class="fa-solid fa-pen text-purple-400 text-xs"></i>
+                                    ข้อความต้นฉบับ
+                                </label>
+                                <button id="swapLanguages" class="text-xs text-gray-400 hover:text-gray-200 transition-colors" title="สลับภาษา">
+                                    <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                                </button>
+                            </div>
+                            <textarea
+                                id="sourceText"
+                                placeholder="พิมพ์ข้อความที่ต้องการแปลที่นี่... หรือวางข้อความจากที่อื่นก็ได้"
+                                class="w-full bg-gray-700/80 text-gray-200 rounded-lg p-3 resize-none no-scrollbar focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 border border-gray-600/50 hover:border-gray-500"
+                                rows="4"></textarea>
+                            <div class="flex justify-between items-center text-xs text-gray-400">
+                                <span id="sourceCharCount">0 ตัวอักษร</span>
+                                <button id="clearSourceBtn" class="text-gray-500 hover:text-gray-300 transition-colors">
+                                    <i class="fa-solid fa-trash text-xs"></i> ล้าง
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Translated Text -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label class="text-xs font-medium text-gray-300 flex items-center gap-1">
+                                    <i class="fa-solid fa-language text-green-400 text-xs"></i>
+                                    ผลการแปล
+                                </label>
+                                <div class="flex items-center gap-1">
+                                    <button id="copyTranslation" class="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded transition-colors hidden">
+                                        <i class="fa-solid fa-copy"></i>
+                                    </button>
+                                    <button id="speakTranslation" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition-colors hidden" title="ฟังเสียง">
+                                        <i class="fa-solid fa-volume-up"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="translationOutput" class="w-full bg-gray-800/50 text-gray-200 rounded-lg p-3 min-h-[112px] border border-gray-600/30 flex items-center justify-center text-sm">
+                                <div class="text-center text-gray-400">
+                                    <i class="fa-solid fa-language text-2xl mb-2 block"></i>
+                                    กำลังรอข้อความที่จะแปล...
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center text-xs text-gray-400">
+                                <span id="translationStatus">พร้อมแปล</span>
+                                <div class="flex items-center gap-2">
+                                    <button id="translateBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-xs transition-colors flex items-center gap-1">
+                                        <i class="fa-solid fa-language"></i>
+                                        แปลเลย
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions & Settings -->
+                    <div class="flex items-center justify-between pt-2 border-t border-gray-700/50">
+                        <div class="flex items-center gap-2">
+                            <button id="addToChatBtn" class="text-xs bg-pink-600 hover:bg-pink-700 text-white px-3 py-1 rounded transition-colors hidden">
+                                <i class="fa-solid fa-plus"></i> ส่งเข้าห้องสนทนา
+                            </button>
+                            <button id="translateChatHistory" class="text-xs bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded transition-colors">
+                                <i class="fa-solid fa-history"></i> แปลประวัติสนทนา
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-gray-400">
+                            <i class="fa-solid fa-info-circle"></i>
+                            <span>รองรับการแปลหลายภาษา • ปลอดภัยและรวดเร็ว</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

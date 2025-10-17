@@ -216,7 +216,6 @@ app.get('/', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`🚀 Ollama Chatbot Server running on http://localhost:${PORT}`);
     console.log(`🤖 Using model: ${MODEL_NAME}`);
-    console.log(`📝 Chat interface available at http://localhost:${PORT}/chat.html`);
+    console.log(`📝 Chat interface available at http://localhost:${PORT}`);
 });
